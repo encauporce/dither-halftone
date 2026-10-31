@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large Raw Video Files (Keep repo lightweight for GitHub)
+clips/*.mp4
+
+# Operating System Files
+Thumbs.db
+.DS_Store
+
+# Temporary logs
+*.log
+.system_generated/
