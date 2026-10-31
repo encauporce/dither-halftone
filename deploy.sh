@@ -59,6 +59,6 @@ echo -e "\033[1;33m[*] Verifying remote files...\033[0m"
 adb -s "${DEVICE_ID}" shell "ls -l ${TARGET_SHADER_DIR}/halftone.glsl"
 
 echo -e "\033[1;32m======================================================================\033[0m"
-echo -e "\033[1;32m [SUCCESS] DeepInk Shader deployed successfully to your Hisense A7!\033[0m"
+echo -e "\033[1;32m [SUCCESS] 抖动网点 (Dither Halftone) Shader deployed successfully to your Hisense A7!\033[0m"
 echo -e " Open mpv-android on your phone and play any video to experience it!"
 echo -e "\033[1;32m======================================================================\033[0m"

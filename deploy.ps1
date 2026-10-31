@@ -75,7 +75,7 @@ $remoteLs = & adb -s $targetDevice shell "ls -l $TargetShaderDir/halftone.glsl"
 Write-Host "    $remoteLs" -ForegroundColor Gray
 
 Write-Host "======================================================================" -ForegroundColor Green
-Write-Host " [SUCCESS] DeepInk Shader successfully deployed to your Hisense A7!" -ForegroundColor Green
+Write-Host " [SUCCESS] 抖动网点 (Dither Halftone) Shader successfully deployed to your Hisense A7!" -ForegroundColor Green
 Write-Host " How to run:" -ForegroundColor Green
 Write-Host "   1. Launch 'mpv-android' on your phone." -ForegroundColor White
 Write-Host "   2. Play any video (films, animations, gameplay)." -ForegroundColor White
