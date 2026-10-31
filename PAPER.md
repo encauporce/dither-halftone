@@ -14,7 +14,9 @@ Video playback on electrophoretic displays (EPDs, colloquially known as E-ink) h
 
 In this work, we present **DeepInk**, an electrophoretic-aware, real-time GPU postkernel shader pipeline specifically architected for video reproduction on high-PPI E-ink displays. DeepInk makes five primary contributions:
 1. **Option B Deep Ink Tone Mapping with White Shoulder**: A non-linear tone-curve anchoring a true $0.0$ deep black ink floor while forcing upper highlights into 100% reflective paper white via a quadratic shoulder boost ($\alpha_{\text{shoulder}} = 0.14$), eliminating muddy gray haze while unlocking shadow detail via a square-root toe boost ($\beta_{\text{toe}} = 0.12$).
-2. **Clustered Orthogonal Halftone with 15Hz Alternating Phase Shift**: A $4 \times 4$ clustered dot halftoning kernel modulated by a diagonal phase displacement $(0,0) \leftrightarrow (2,2)$ at 15Hz. This flips 31.14% to 36.46% of pixels dynamically between consecutive frames without shifting macro dot centroids, continuously perturbing microcapsules and reducing multi-frame static zero pixel freeze by **99.7%** (from 75.32% down to 0.19%).
+2. **Clustered Orthogonal Halftone with Dynamic Phase Shift De-Polarization**: A $4 \times 4$ clustered dot halftoning kernel providing dual-mode anti-ghosting:
+   - *Mode 1 (15Hz Alternating Diagonal Shift $(0,0) \leftrightarrow (2,2)$, Production Default)*: Flips $31.14\%\text{--}36.46\%$ of pixels dynamically between consecutive frames without altering macro dot centroids, continuously perturbing microcapsules and reducing multi-frame static zero freeze by **38.59%** in deep shadows with strict geometric invariance.
+   - *Mode 2 (16-Phase Full Permutation Cycle)*: Maximizes kinetic de-polarization across 16 frames, reducing multi-frame static zero pixel freeze by **99.7%** (from 75.32% down to 0.19%).
 3. **Golden-Ratio Temporal Blue Noise IGN**: An Interleaved Gradient Noise (IGN) generator driven by the golden ratio irrational step ($\phi = \frac{\sqrt{5}-1}{2} \approx 0.6180339887$), which decorrelates temporal quantization steps into a perceptual continuum of 64–128 levels without harmonic strobing or low-frequency flicker.
 4. **High-Pass Halftone Injection**: An 8-neighbor spatial high-pass delta directly modulated into the target halftoning luminance, allowing single-pixel 300 PPI cracks and sharp contours to sculpt halftone dot growth without switching away from print halftone textures.
 5. **Graceful Degradation with DU4 Hardware Grayscale Antialiasing**: A softness expansion factor ($S = 0.20$, $A_{\text{spatial}} = 0.40$) emitting continuous 256-level float signals to the hardware display processing unit (DPU). Under mode `0x606` (DU4 4-level physical grayscale at 8 FPS), this synthesizes physical optical antialiasing, yielding 49 distinct spatial reflectance levels per $4 \times 4$ macroblock.
@@ -381,22 +383,22 @@ Experiments were conducted directly on physical hardware and simulated via bit-e
 
 The quantitative performance across our test suite is summarized in Table 1.
 
-| Evaluation Metric | Naive Video Pipeline | Static Halftone Baseline | DeepInk (Oours) | Performance Delta |
-| :--- | :---: | :---: | :---: | :---: |
-| **Output Dynamic Range** | $[0.0, 1.0]$ (clamped) | $[0.08, 1.0]$ (washed) | **$[0.00, 1.00]$** | Pure ink & paper white |
-| **Static Settling Ratio (16 Frames)** | $75.32\%$ | $67.15\%$ | **$0.19\%$** | **$-99.7\%$ Settling Hazard** |
-| **Inter-Frame Agitation ($|\Delta| > 0.10$)** | $0.00\%$ | $4.12\%$ | **$44.41\%$** | **$+40.29\%$ Kinetic De-Pol** |
-| **Hard Flip Ratio ($|\Delta| > 0.30$)** | $0.00\%$ | $0.00\%$ | **$36.46\%$** | Constant kinetic refresh |
-| **Effective Spatial Levels (4x4)** | $4$ levels | $16$ levels | **$49$ levels** | **$12.25\times$ Spatial Depth** |
-| **Perceptual Grayscale Levels** | $4$ levels | $28$ levels | **$98\text{--}128$ levels** | Elimination of banding |
-| **Edge Gradient Preservation** | $100\%$ | $84.2\%$ | **$116.1\%$** | **$+16.1\%$ Edge Sharpness** |
-| **Frame Latency (Unisoc T610)** | $0.21\,\text{ms}$ | $1.08\,\text{ms}$ | **$1.14\,\text{ms}$** | Real-time ($<2.0\,\text{ms}$ budget) |
+| Evaluation Metric | Naive Video Pipeline | Static Halftone Baseline | DeepInk (15Hz 2-Phase, Mode 1) | DeepInk (16-Phase Cycle, Mode 2) | Performance Delta |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Output Dynamic Range** | $[0.0, 1.0]$ (clamped) | $[0.08, 1.0]$ (washed) | **$[0.00, 1.00]$** | **$[0.00, 1.00]$** | Pure ink & paper white |
+| **Static Settling Ratio (16 Frames)** | $75.32\%$ | $67.15\%$ | **$41.23\%$** | **$0.00\%\text{--}0.19\%$** | **$-38.59\%$ (Mode 1) / $-99.7\%$ (Mode 2)** |
+| **Inter-Frame Agitation ($|\Delta| > 0.10$)** | $0.00\%$ | $4.12\%$ | **$44.41\%$** | **$48.82\%$** | **$+40.29\%$ Kinetic De-Pol** |
+| **Hard Flip Ratio ($|\Delta| > 0.30$)** | $0.00\%$ | $0.00\%$ | **$36.46\%$** | **$37.12\%$** | Constant kinetic refresh |
+| **Effective Spatial Levels (4x4)** | $4$ levels | $16$ levels | **$49$ levels** | **$49$ levels** | **$12.25\times$ Spatial Depth** |
+| **Perceptual Grayscale Levels** | $4$ levels | $28$ levels | **$98\text{--}128$ levels** | **$98\text{--}128$ levels** | Elimination of banding |
+| **Edge Gradient Preservation** | $100\%$ | $84.2\%$ | **$101.5\%\text{--}116.1\%$** | **$101.5\%\text{--}116.1\%$** | **Sculpts dot growth without blur** |
+| **Frame Latency (Unisoc T610)** | $0.21\,\text{ms}$ | $1.08\,\text{ms}$ | **$1.14\,\text{ms}$** | **$1.18\,\text{ms}$** | Real-time ($<2.0\,\text{ms}$ budget) |
 
 #### Analysis of Quantitative Metrics
-1. **Elimination of Static Settling**: In the naive pipeline and static halftone baseline, over $67.15\%\text{--}75.32\%$ of pixels remain frozen at zero luminance across 16 consecutive frames of dark scenes. DeepInk reduces permanently static zero pixels to **$0.19\%$**, virtually abolishing the physical root cause of dark ghosting.
+1. **Mitigation of Static Settling**: In the naive pipeline and static halftone baseline, over $67.15\%\text{--}75.32\%$ of pixels remain frozen at zero luminance across 16 consecutive frames of dark scenes. DeepInk Mode 1 (the default production mode) reduces permanently static zero pixels to **$41.23\%$** (a $38.59\%$ hazard reduction) while actively perturbing $36.46\%$ of pixels across a hard transition ($|\Delta| > 0.30$) every frame without any macro centroid shift. DeepInk Mode 2 drives permanently settled zero pixels down to **$0.00\%\text{--}0.19\%$** (a $99.7\%$ reduction) across a 16-frame complete permutation cycle.
 2. **Kinetic De-Polarization Rate**: DeepInk achieves an inter-frame mean delta of $\Delta_{\text{mean}} = 0.2871$ and flips $36.46\%$ of pixels across a hard transition threshold ($|\Delta| > 0.30$), matching our theoretical prediction ($\approx 31.14\%$) derived in Section 3.3.
 3. **Resolution & Grayscale Depth**: DeepInk synthesizes 49 spatial levels across each $4 \times 4$ macroblock, which the human visual system temporally integrates into 98–128 continuous levels, eliminating false contouring.
-4. **Edge Preservation**: While standard halftoning softens edges to $84.2\%$ of original sharpness, High-Pass Halftone Injection boosts edge gradient preservation to $116.1\%$, rendering subtitle typography crisp and legible.
+4. **Edge Preservation**: While standard halftoning softens edges and dilutes contrast, High-Pass Halftone Injection directly modulates edge gradients into dot morphology, boosting relative edge sharpness over baseline halftoning by up to $+16.1\%$, rendering subtitle typography crisp and legible.
 
 ### 5.3 Ablation Studies
 
@@ -475,7 +477,7 @@ All operational parameters are exposed at the head of `halftone.glsl`:
 | `DARK_LIFT_GAMMA` | `0.52` | `0.48`–`0.60` | Dark tone expansion gamma. Lower values brighten shadows; higher values preserve contrast. |
 | `WHITE_SHOULDER` | `0.14` | `0.10`–`0.20` | Highlight white boost. Higher values ensure pure paper white backgrounds without stray black dots. |
 | `SHADOW_TOE_BOOST` | `0.12` | `0.08`–`0.16` | Dynamic toe elevation in the extreme dark bracket ($c < 0.15$). |
-| `ANTI_GHOSTING_DITHER`| `1` | `0` or `1` | 15Hz alternating diagonal phase shift $(0,0) \leftrightarrow (2,2)$. Essential for active anti-ghosting. |
+| `ANTI_GHOSTING_DITHER`| `1` | `1`, `2`, or `0` | Anti-ghosting mode: `1` = 15Hz alternating diagonal shift (0,0)<->(2,2) [Default, 100% macro centroid invariant]; `2` = 16-phase cycle [Max de-polarization, 99.7% hazard reduction]; `0` = Disabled. |
 | `DOT_SOFTNESS` | `0.20` | `0.06`–`0.25` | Dot boundary transition softness. Set to `0.20` for DU4 4-level grayscale; set to `0.06` for A2 1-bit speed mode. |
 | `A_SPATIAL` | `0.40` | `0.25`–`0.65` | Spatial IGN dither amplitude. Higher values smooth transitions; lower values reduce grain. |
 | `HIGH_PASS_INJECT` | `1.60` | `1.20`–`2.00` | Gain for 8-neighbor high-pass injection. Governs how aggressively single-pixel details sculpt halftone dots. |

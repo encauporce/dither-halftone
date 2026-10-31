@@ -26,8 +26,7 @@ if (-not $adbCmd) {
 }
 
 # 2. Check Device Connection
-$adbPrefix = if ($DeviceSerial) { "adb -s $DeviceSerial" } else { "adb" }
-$rawDevices = & adb devices | Select-String -Pattern "device$"
+$rawDevices = & adb devices | Select-String -Pattern "\bdevice$"
 
 if (-not $rawDevices) {
     Write-Warning "No authorized Android device detected via ADB!"
@@ -39,7 +38,8 @@ if (-not $rawDevices) {
 }
 
 $detected = ($rawDevices | Select-Object -First 1).ToString().Split("`t")[0].Trim()
-Write-Host "[+] Target Android Device Found: $detected" -ForegroundColor Green
+$targetDevice = if ($DeviceSerial) { $DeviceSerial } else { $detected }
+Write-Host "[+] Target Android Device: $targetDevice" -ForegroundColor Green
 
 $scriptDir = $PSScriptRoot
 $shaderPath = Join-Path $scriptDir "halftone.glsl"
@@ -52,11 +52,11 @@ if (-not (Test-Path $shaderPath)) {
 
 # 3. Create Remote Directories
 Write-Host "[*] Creating remote MPV shader directories on device..." -ForegroundColor Yellow
-& adb shell "mkdir -p $TargetShaderDir"
+& adb -s $targetDevice shell "mkdir -p $TargetShaderDir"
 
 # 4. Push halftone.glsl
 Write-Host "[*] Pushing halftone.glsl to $TargetShaderDir/halftone.glsl ..." -ForegroundColor Yellow
-& adb push "$shaderPath" "$TargetShaderDir/halftone.glsl"
+& adb -s $targetDevice push "$shaderPath" "$TargetShaderDir/halftone.glsl"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to push halftone.glsl!"
@@ -66,12 +66,12 @@ if ($LASTEXITCODE -ne 0) {
 # 5. Push mpv.conf if present
 if (Test-Path $configPath) {
     Write-Host "[*] Pushing mpv.conf to $TargetConfigDir/mpv.conf ..." -ForegroundColor Yellow
-    & adb push "$configPath" "$TargetConfigDir/mpv.conf"
+    & adb -s $targetDevice push "$configPath" "$TargetConfigDir/mpv.conf"
 }
 
 # 6. Verify Installation
 Write-Host "[*] Verifying remote files..." -ForegroundColor Yellow
-$remoteLs = & adb shell "ls -l $TargetShaderDir/halftone.glsl"
+$remoteLs = & adb -s $targetDevice shell "ls -l $TargetShaderDir/halftone.glsl"
 Write-Host "    $remoteLs" -ForegroundColor Gray
 
 Write-Host "======================================================================" -ForegroundColor Green

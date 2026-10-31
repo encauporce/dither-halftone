@@ -37,7 +37,7 @@ echo -e "\033[1;32m[+] Connected device detected: ${DEVICE_ID}\033[0m"
 
 # 3. Create Remote Directories
 echo -e "\033[1;33m[*] Creating remote directories on device...\033[0m"
-adb shell "mkdir -p ${TARGET_SHADER_DIR}"
+adb -s "${DEVICE_ID}" shell "mkdir -p ${TARGET_SHADER_DIR}"
 
 # 4. Push halftone.glsl
 if [ ! -f "${SCRIPT_DIR}/halftone.glsl" ]; then
@@ -46,17 +46,17 @@ if [ ! -f "${SCRIPT_DIR}/halftone.glsl" ]; then
 fi
 
 echo -e "\033[1;33m[*] Pushing halftone.glsl to ${TARGET_SHADER_DIR}/halftone.glsl ...\033[0m"
-adb push "${SCRIPT_DIR}/halftone.glsl" "${TARGET_SHADER_DIR}/halftone.glsl"
+adb -s "${DEVICE_ID}" push "${SCRIPT_DIR}/halftone.glsl" "${TARGET_SHADER_DIR}/halftone.glsl"
 
 # 5. Push mpv.conf if present
 if [ -f "${SCRIPT_DIR}/mpv.conf" ]; then
     echo -e "\033[1;33m[*] Pushing mpv.conf to ${TARGET_CONFIG_DIR}/mpv.conf ...\033[0m"
-    adb push "${SCRIPT_DIR}/mpv.conf" "${TARGET_CONFIG_DIR}/mpv.conf"
+    adb -s "${DEVICE_ID}" push "${SCRIPT_DIR}/mpv.conf" "${TARGET_CONFIG_DIR}/mpv.conf"
 fi
 
 # 6. Verify
 echo -e "\033[1;33m[*] Verifying remote files...\033[0m"
-adb shell "ls -l ${TARGET_SHADER_DIR}/halftone.glsl"
+adb -s "${DEVICE_ID}" shell "ls -l ${TARGET_SHADER_DIR}/halftone.glsl"
 
 echo -e "\033[1;32m======================================================================\033[0m"
 echo -e "\033[1;32m [SUCCESS] DeepInk Shader deployed successfully to your Hisense A7!\033[0m"
