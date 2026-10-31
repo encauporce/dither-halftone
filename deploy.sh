@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# One-Click ADB Deployment Script for Hisense A7 E-Ink Video Shader (DeepInk)
+# One-Click ADB Deployment Script for Dither Halftone (抖动网点)
 # Targets: macOS / Linux / Git Bash
 # ==============================================================================
 
@@ -11,7 +11,7 @@ TARGET_SHADER_DIR="/sdcard/mpv/shaders"
 TARGET_CONFIG_DIR="/sdcard/mpv"
 
 echo -e "\033[1;36m======================================================================\033[0m"
-echo -e "\033[1;36m DeepInk: Hisense A7 E-Ink Video Shader - ADB Deployment Tool (Bash) \033[0m"
+echo -e "\033[1;36m 抖动网点 (Dither Halftone) - ADB 部署脚本 (Bash) \033[0m"
 echo -e "\033[1;36m======================================================================\033[0m"
 
 # 1. Check ADB

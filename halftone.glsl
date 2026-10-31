@@ -1,30 +1,23 @@
 //!HOOK POSTKERNEL
 //!BIND HOOKED
-//!DESC DeepInk: Hisense A7 E-ink Video Enhancer (DU4 Grayscale + Option B Deep Ink + 15Hz Anti-Ghosting)
+//!DESC 抖动网点 (Dither Halftone: 墨水屏视频增强着色器)
 
 /**
  * ============================================================================
- * DeepInk: Hisense A7 E-ink Video Enhancer Postkernel Shader
+ * 抖动网点 (Dither Halftone) - 墨水屏视频增强 mpv 着色器
  * ----------------------------------------------------------------------------
- * Project: DeepInk / Hisense A7 E-Ink Video Enhancer
- * Academic Paper: "DeepInk: Electrophoretic-Aware Halftoning and Dynamic 
- *                  De-Polarization for Video Rendering on High-PPI Reflective Displays"
- * Target Hardware: Hisense A7 B&W E-ink (Carta 1200, 300 PPI, Unisoc T610, GM9446 GPU)
- * Software Environment: is.xyz.mpv (MPV Android)
- * License: MIT License
+ * 适配设备: 海信 A7 黑白墨水屏手机 (Carta 1200, 300 PPI) 及各类电子纸设备
+ * 播放软件: is.xyz.mpv (mpv-android)
+ * 开源协议: MIT License
  * ----------------------------------------------------------------------------
- * Core Technical Innovations:
- * 1. Option B Deep Ink Tone Mapping: Anchors solid 0.0 deep black ink floor while
- *    forcing upper highlights into 100% reflective paper white via quadratic shoulder.
- * 2. 15Hz Alternating Phase Shift (0,0) <-> (2,2): Flips ~31% of pixels dynamically
- *    every frame without shifting macro dot centroids, continuously perturbing
- *    microcapsules to abolish static black settling ("死黑" / particle freeze).
- * 3. Golden-Ratio Temporal Blue Noise IGN: Uses phi = 0.6180339887 irrational phase
- *    advance to interpolate discrete steps into 64~128 perceptual levels without strobe.
- * 4. High-Pass Halftone Injection: Injects 8-neighbor high-pass delta directly into
- *    target luminance, allowing 300 PPI micro-fissures to organically sculpt dot growth.
- * 5. DU4 Hardware Optical Antialiasing: Continuous float output under smoothness 0.20
- *    enables hardware composer (Mode 0x606) to synthesize 49 spatial grayscale levels.
+ * 核心原理 (实用调优):
+ * 1. 影调与白肩调整: 修正视频 Rec.709 动态范围与墨水屏的差异，暗部提亮保细节，
+ *    高光二次白肩推到纯白消除天空噪点，同时保住纯黑深墨基底。
+ * 2. 4x4 聚簇印刷网点: 采用纵向稳定的 4x4 网点排列，配合边缘高通锐化，文字与轮廓不发糊。
+ * 3. 帧间抗残影微抖动: 奇偶帧在对角线跳动（或 16 相循环微调），让微胶囊粒子保持运动，
+ *    避免暗部长时间静止卡死留下残影。
+ * 4. 渐变软边缘: 输出保留微弱平滑渐变，利用屏幕流畅模式 (DU4 四阶灰度)
+ *    自然平滑网点边缘，呈现更细腻的空间色阶。
  * ============================================================================
  */
 

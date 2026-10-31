@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Benchmark & Ablation Verification Suite for DeepInk / Hisense A7 E-Ink Video Shader
+Benchmark & Ablation Verification Suite for Dither Halftone (抖动网点)
 Author: encauporce
 License: MIT
 """
@@ -151,7 +151,7 @@ def run_benchmarks():
     mc_path = os.path.join(repo_dir, "raw_clip2_minecraft.png")
 
     print("=" * 80)
-    print(" DeepInk / Hisense A7 E-Ink Video Shader Quantitative Benchmark Suite")
+    print(" Dither Halftone (抖动网点) Quantitative Benchmark Suite")
     print("=" * 80)
 
     if not os.path.exists(ds_path) or not os.path.exists(mc_path):
@@ -197,8 +197,8 @@ def run_benchmarks():
     cycle_zero_ratio = cycle_zero.mean() * 100.0
 
     print(f"  Baseline (Static Halftone):          Permanently Settled Pixels = {static_zero_ratio:.2f}%")
-    print(f"  DeepInk Mode 1 (15Hz 2-Phase Shift):  Permanently Settled Pixels = {ours_zero_ratio:.2f}% ({(1.0 - ours_zero_ratio / static_zero_ratio)*100.0:.2f}% Freeze Hazard Reduction)")
-    print(f"  DeepInk Mode 2 (16-Phase Full Cycle): Permanently Settled Pixels = {cycle_zero_ratio:.2f}% ({(1.0 - cycle_zero_ratio / static_zero_ratio)*100.0:.2f}% Freeze Hazard Reduction)")
+    print(f"  Dither Halftone Mode 1 (15Hz 2-Phase): Permanently Settled Pixels = {ours_zero_ratio:.2f}% ({(1.0 - ours_zero_ratio / static_zero_ratio)*100.0:.2f}% Freeze Hazard Reduction)")
+    print(f"  Dither Halftone Mode 2 (16-Phase Full Cycle): Permanently Settled Pixels = {cycle_zero_ratio:.2f}% ({(1.0 - cycle_zero_ratio / static_zero_ratio)*100.0:.2f}% Freeze Hazard Reduction)")
     print(f"  --> Note: Mode 1 guarantees 100% macro centroid invariance (default); Mode 2 provides max de-polarization.")
 
     # 2. Inter-Frame Dynamic Pixel Flip Rate (De-Polarization Energy)
@@ -229,7 +229,7 @@ def run_benchmarks():
     naive_levels = len(np.unique(np.round(naive_ds * 255.0)))
     ours_f0_levels = len(np.unique(np.round(f0_ours * 255.0)))
     print(f"  Naive DU4 Video Pipeline Unique Discrete Levels: {naive_levels} levels")
-    print(f"  DeepInk Pipeline Unique Output Levels:           {ours_f0_levels} levels (Continuous Float32)")
+    print(f"  Dither Halftone Pipeline Unique Output Levels:   {ours_f0_levels} levels (Continuous Float32)")
     print(f"  Physical DU4 Spatial Macro Levels (4x4 Block):   49 levels (4 x 4 x 3 + 1)")
 
     # 5. High-Pass Detail Injection & Edge Preservation
@@ -252,7 +252,7 @@ def run_benchmarks():
     print(f"  Minecraft High-Contrast Structural Edges (Threshold > 0.10):")
     print(f"    - Input Edge Mean Gradient:           {mean_orig:.4f}")
     print(f"    - Standard Halftone Edge Mean Grad:   {mean_base:.4f}")
-    print(f"    - DeepInk Halftone Edge Mean Grad:     {mean_ours:.4f}")
+    print(f"    - Dither Halftone Edge Mean Grad:     {mean_ours:.4f}")
     print(f"    - Relative Edge Sharpness over Halftone: {relative_edge_boost:.2f}% (Sculpts dot growth without blur)")
 
     print("\n" + "=" * 80)

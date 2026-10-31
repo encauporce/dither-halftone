@@ -1,6 +1,7 @@
-# DeepInk: Electrophoretic-Aware Halftoning and Dynamic De-Polarization for Video Rendering on High-PPI Reflective Displays
+# Dither Halftone: A Practical GLSL Shader for Video Playback on High-PPI Electrophoretic Displays
 
-**Authors**: DeepInk Engineering & Research Team  
+**Project**: Dither Halftone (抖动网点)  
+**Authors**: Dither Halftone Contributors  
 **Target Architecture**: Hisense A7 E-Ink Smartphone (Unisoc T610 / PowerVR Rogue GM9446, Android 10, Carta 1200, 300 PPI)  
 **Implementation**: MPV Postkernel GLSL Hook (`halftone.glsl`)  
 **Repository**: [github.com/encauporce/hisense_a7_video_shader](https://github.com/encauporce/hisense_a7_video_shader)  
@@ -10,9 +11,9 @@
 
 ## Abstract
 
-Video playback on electrophoretic displays (EPDs, colloquially known as E-ink) has historically been impeded by the fundamental physical disparity between the electrophoretic microcapsule response latency (tens to hundreds of milliseconds), electrophoretic hysteresis, and the temporal demands of standard video streams (24–60 FPS). On modern high-pixel-density reflective devices such as the Hisense A7 (featuring an E Ink Carta 1200 panel at 300 PPI), standard video pipelines produce catastrophic visual artifacts: severe dark ghosting from static microcapsule freeze, muddy gray-washed shadows, harsh contour banding under low-bit hardware refresh waveforms (e.g., DU4 4-level grayscale or A2 1-bit speed modes), and excessive spatial noise or edge softening from macro halftoning.
+Video playback on electrophoretic displays (EPDs, colloquially known as E-ink) has historically been impeded by the fundamental physical disparity between the electrophoretic microcapsule response latency (tens to hundreds of milliseconds), electrophoretic hysteresis, and the temporal demands of standard video streams (24–60 FPS). On modern high-pixel-density reflective devices such as the Hisense A7 (featuring an E Ink Carta 1200 panel at 300 PPI), standard video pipelines produce notable visual artifacts: severe dark ghosting from static microcapsule freeze, muddy gray-washed shadows, harsh contour banding under low-bit hardware refresh waveforms (e.g., DU4 4-level grayscale or A2 1-bit speed modes), and excessive spatial noise or edge softening from macro halftoning.
 
-In this work, we present **DeepInk**, an electrophoretic-aware, real-time GPU postkernel shader pipeline specifically architected for video reproduction on high-PPI E-ink displays. DeepInk makes five primary contributions:
+In this work, we present **Dither Halftone** (抖动网点), a practical and lightweight GPU postkernel shader pipeline specifically architected for video reproduction on high-PPI E-ink displays. Dither Halftone makes five primary contributions:
 1. **Option B Deep Ink Tone Mapping with White Shoulder**: A non-linear tone-curve anchoring a true $0.0$ deep black ink floor while forcing upper highlights into 100% reflective paper white via a quadratic shoulder boost ($\alpha_{\text{shoulder}} = 0.14$), eliminating muddy gray haze while unlocking shadow detail via a square-root toe boost ($\beta_{\text{toe}} = 0.12$).
 2. **Clustered Orthogonal Halftone with Dynamic Phase Shift De-Polarization**: A $4 \times 4$ clustered dot halftoning kernel providing dual-mode anti-ghosting:
    - *Mode 1 (15Hz Alternating Diagonal Shift $(0,0) \leftrightarrow (2,2)$, Production Default)*: Flips $31.14\%\text{--}36.46\%$ of pixels dynamically between consecutive frames without altering macro dot centroids, continuously perturbing microcapsules and reducing multi-frame static zero freeze by **38.59%** in deep shadows with strict geometric invariance.
@@ -40,14 +41,14 @@ A transformative physical property of modern E-ink smartphones (notably the Hise
 This human visual system (HVS) threshold presents a pivotal opportunity: individual $84.6\,\mu\text{m}$ pixels cannot be resolved without magnification. Thus, high spatial frequency redundancy can be traded for synthesized grayscale depth and dynamic temporal agitation without degrading perceived sharpness.
 
 ### 1.3 Key Contributions
-To resolve the video-on-EPD dilemma, we present **DeepInk**, an end-to-end mathematical and shader framework integrated into the MPV video player (`is.xyz.mpv`) via GLSL postkernel hooks. Our contributions are summarized as follows:
+To resolve the video-on-EPD dilemma, we present **Dither Halftone**, an end-to-end mathematical and shader framework integrated into the MPV video player (`is.xyz.mpv`) via GLSL postkernel hooks. Our contributions are summarized as follows:
 
 - **Mathematical Formulation of EPD Dynamic Range**: We formulate the Option B Deep Ink transfer function incorporating an asymptotic white shoulder and a square-root dark toe boost, anchoring pure paper white ($1.0$) and pure deep ink ($0.0$) while preventing mid-tone gray wash.
 - **Microcapsule Agitation via 15Hz Phase Modulation**: We design an alternating $(0,0) \leftrightarrow (2,2)$ phase-shifting clustered halftoning matrix that continuously forces 31.14%–36.46% of pixels to flip drive states between consecutive frames at 15Hz, breaking microcapsule polarization without causing visual geometric pulsation.
 - **Golden-Ratio Temporal Blue Noise IGN**: We eliminate temporal moiré and low-frequency harmonic strobing by phase-advancing Interleaved Gradient Noise through the golden ratio irrational constant $\phi \approx 0.6180339887$.
 - **High-Pass Halftone Injection**: Rather than abruptly disabling halftoning at edges (which causes harsh boundary transitions), we inject 8-neighbor spatial high-pass deltas directly into the halftoning target luminance, allowing microscopic lines to organically sculpt halftone dot growth.
 - **DU4 Optical Antialiasing**: By configuring dot softness to $S = 0.20$ and spatial noise to $A_{\text{spatial}} = 0.40$, we feed continuous 256-level float signals into the hardware EPDC. The hardware composer quantizes these continuous values across neighboring microcapsules, synthesizing 49 distinct spatial reflectance levels per $4 \times 4$ macroblock with natural ink bleeding.
-- **Empirical Hardware Validation**: We evaluate DeepInk on real Hisense A7 hardware across synthetic gradient ramps, complex 3D gameplay (*Death Stranding*), and high-contrast block rendering (*Minecraft*), reporting quantitative metrics and on-device oscilloscope/screencap verifications.
+- **Empirical Hardware Validation**: We evaluate Dither Halftone on real Hisense A7 hardware across synthetic gradient ramps, complex 3D gameplay (*Death Stranding*), and high-contrast block rendering (*Minecraft*), reporting quantitative metrics and on-device oscilloscope/screencap verifications.
 
 ---
 
@@ -130,7 +131,7 @@ For real-time 1080p playback at 30 FPS, the maximum allowable frame rendering bu
 
 ## 3. Mathematical Formulation & Pipeline Architecture
 
-The overall pipeline of DeepInk is depicted below. Each stage is mathematically formalized and implemented in a single unified GLSL hook (`//!HOOK POSTKERNEL`).
+The overall pipeline of the dither halftone shader is depicted below. Each stage is mathematically formalized and implemented in a single unified GLSL hook (`//!HOOK POSTKERNEL`).
 
 ```
                     Input Video Frame (Rec.709 sRGB)
@@ -220,7 +221,7 @@ $$L_{\text{lifted}} = L_{\text{min}} + (1.0 - L_{\text{min}}) \cdot T(c)$$
 ### 3.3 Clustered Orthogonal Halftone with 15Hz Alternating Phase Shift
 Standard error-diffusion halftoning (e.g., Floyd-Steinberg) introduces chaotic temporal boiling when applied frame-by-frame to video. Conversely, static dispersed-dot dither arrays (e.g., Bayer matrices) produce high-frequency grain that dissolves into amorphous noise on moving scenes.
 
-DeepInk employs a **$4 \times 4$ clustered dot halftoning matrix** $M_{16}$, structurally optimized to simulate the clustered dot growth of traditional gravure printing. The threshold matrix $\Theta \in \mathbb{R}^{4 \times 4}$ is normalized to $(0, 1)$:
+Our shader employs a **$4 \times 4$ clustered dot halftoning matrix** $M_{16}$, structurally optimized to simulate the clustered dot growth of traditional gravure printing. The threshold matrix $\Theta \in \mathbb{R}^{4 \times 4}$ is normalized to $(0, 1)$:
 
 $$M_{16} = \begin{bmatrix} 
 12 & 8 & 9 & 13 \\ 
@@ -349,11 +350,11 @@ with $K_{\text{boost}} = 1.15$.
 ## 4. Implementation & System Integration
 
 ### 4.1 MPV Postkernel Shader Integration
-DeepInk is packaged as a standard MPV video shader hook (`halftone.glsl`). By hooking at the `POSTKERNEL` stage:
+Dither Halftone is packaged as a standard MPV video shader hook (`halftone.glsl`). By hooking at the `POSTKERNEL` stage:
 ```glsl
 //!HOOK POSTKERNEL
 //!BIND HOOKED
-//!DESC Hisense A7 E-ink Video Enhancer: Smooth Mode DU4 Physical Grayscale + Option B Deep Ink + Fixed Halftone
+//!DESC 抖动网点 (Dither Halftone: 墨水屏视频增强着色器)
 ```
 The shader executes directly on the final scaled backbuffer, operating in native screen coordinates ($1800 \times 900$) after all video decoding, deinterlacing, and scaling are finalized.
 
@@ -383,7 +384,7 @@ Experiments were conducted directly on physical hardware and simulated via bit-e
 
 The quantitative performance across our test suite is summarized in Table 1.
 
-| Evaluation Metric | Naive Video Pipeline | Static Halftone Baseline | DeepInk (15Hz 2-Phase, Mode 1) | DeepInk (16-Phase Cycle, Mode 2) | Performance Delta |
+| Evaluation Metric | Naive Video Pipeline | Static Halftone Baseline | Dither Halftone (15Hz 2-Phase, Mode 1) | Dither Halftone (16-Phase Cycle, Mode 2) | Performance Delta |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Output Dynamic Range** | $[0.0, 1.0]$ (clamped) | $[0.08, 1.0]$ (washed) | **$[0.00, 1.00]$** | **$[0.00, 1.00]$** | Pure ink & paper white |
 | **Static Settling Ratio (16 Frames)** | $75.32\%$ | $67.15\%$ | **$41.23\%$** | **$0.00\%\text{--}0.19\%$** | **$-38.59\%$ (Mode 1) / $-99.7\%$ (Mode 2)** |
@@ -395,9 +396,9 @@ The quantitative performance across our test suite is summarized in Table 1.
 | **Frame Latency (Unisoc T610)** | $0.21\,\text{ms}$ | $1.08\,\text{ms}$ | **$1.14\,\text{ms}$** | **$1.18\,\text{ms}$** | Real-time ($<2.0\,\text{ms}$ budget) |
 
 #### Analysis of Quantitative Metrics
-1. **Mitigation of Static Settling**: In the naive pipeline and static halftone baseline, over $67.15\%\text{--}75.32\%$ of pixels remain frozen at zero luminance across 16 consecutive frames of dark scenes. DeepInk Mode 1 (the default production mode) reduces permanently static zero pixels to **$41.23\%$** (a $38.59\%$ hazard reduction) while actively perturbing $36.46\%$ of pixels across a hard transition ($|\Delta| > 0.30$) every frame without any macro centroid shift. DeepInk Mode 2 drives permanently settled zero pixels down to **$0.00\%\text{--}0.19\%$** (a $99.7\%$ reduction) across a 16-frame complete permutation cycle.
-2. **Kinetic De-Polarization Rate**: DeepInk achieves an inter-frame mean delta of $\Delta_{\text{mean}} = 0.2871$ and flips $36.46\%$ of pixels across a hard transition threshold ($|\Delta| > 0.30$), matching our theoretical prediction ($\approx 31.14\%$) derived in Section 3.3.
-3. **Resolution & Grayscale Depth**: DeepInk synthesizes 49 spatial levels across each $4 \times 4$ macroblock, which the human visual system temporally integrates into 98–128 continuous levels, eliminating false contouring.
+1. **Mitigation of Static Settling**: In the naive pipeline and static halftone baseline, over $67.15\%\text{--}75.32\%$ of pixels remain frozen at zero luminance across 16 consecutive frames of dark scenes. Dither Halftone Mode 1 (the default production mode) reduces permanently static zero pixels to **$41.23\%$** (a $38.59\%$ hazard reduction) while actively perturbing $36.46\%$ of pixels across a hard transition ($|\Delta| > 0.30$) every frame without any macro centroid shift. Dither Halftone Mode 2 drives permanently settled zero pixels down to **$0.00\%\text{--}0.19\%$** (a $99.7\%$ reduction) across a 16-frame complete permutation cycle.
+2. **Kinetic De-Polarization Rate**: Dither Halftone achieves an inter-frame mean delta of $\Delta_{\text{mean}} = 0.2871$ and flips $36.46\%$ of pixels across a hard transition threshold ($|\Delta| > 0.30$), matching our theoretical prediction ($\approx 31.14\%$) derived in Section 3.3.
+3. **Resolution & Grayscale Depth**: Dither Halftone synthesizes 49 spatial levels across each $4 \times 4$ macroblock, which the human visual system temporally integrates into 98–128 continuous levels, eliminating false contouring.
 4. **Edge Preservation**: While standard halftoning softens edges and dilutes contrast, High-Pass Halftone Injection directly modulates edge gradients into dot morphology, boosting relative edge sharpness over baseline halftoning by up to $+16.1\%$, rendering subtitle typography crisp and legible.
 
 ### 5.3 Ablation Studies
@@ -443,7 +444,7 @@ S = 0.50 (Over-softened)            DU4 Smooth      Blurry & Flat      Loss of C
 ### 5.4 Qualitative On-Device Analysis
 
 Optical capture from the physical Hisense A7 display reveals dramatic visual improvements:
-- **Shadow Recovery in Death Stranding**: In low-light sequences, the naive pipeline displays an undifferentiated black silhouette with violent ghosting trails following camera rotation. DeepInk reveals subtle rock textures, mountain contours, and mist layers, rendered in the aesthetic style of a copperplate engraving. When the camera pans across a snowy slope, no black residual ghosting is observed.
+- **Shadow Recovery in Death Stranding**: In low-light sequences, the naive pipeline displays an undifferentiated black silhouette with violent ghosting trails following camera rotation. Dither Halftone reveals subtle rock textures, mountain contours, and mist layers, rendered in the aesthetic style of a copperplate engraving. When the camera pans across a snowy slope, no black residual ghosting is observed.
 - **Subterranean Caverns in Minecraft**: The sharp boundaries of block voxels against deep caverns remain razor-sharp without blur. High-pass injection accurately resolves torches, player tools, and UI hotbars at 1-pixel precision without haloing.
 
 ---
@@ -459,7 +460,7 @@ vo=gpu
 gpu-context=android
 hwdec=mediacodec-copy
 
-# Bind DeepInk Halftone Postkernel Hook
+# Bind Dither Halftone Postkernel Hook
 glsl-shaders="/sdcard/mpv/shaders/halftone.glsl"
 
 # Video Loop & Display Settings
@@ -488,14 +489,14 @@ All operational parameters are exposed at the head of `halftone.glsl`:
 ## 7. Discussion & Limitations
 
 1. **Power Consumption**: The GLSL postkernel shader introduces negligible power overhead ($<3\%$ additional battery drain on the Unisoc T610 during continuous playback), running comfortably below 1.2 ms per frame.
-2. **Waveform Latency Independence**: DeepInk operates entirely in the GPU spatial-temporal domain prior to the hardware DPU. Consequently, it is orthogonal to vendor waveform updates and requires zero root privileges or kernel modifications.
-3. **Extension to Color E-Ink**: While optimized for monochrome Carta 1200 panels, the mathematical formulation of DeepInk extends directly to color reflective displays (e.g., E Ink Kaleido 3, Gallery 3). In color systems, high-pass injection and phase shifting can be applied independently across CMYK or RGB color planes with rotated halftone screen angles ($15^\circ, 45^\circ, 75^\circ$) to avoid moiré.
+2. **Waveform Latency Independence**: Dither Halftone operates entirely in the GPU spatial-temporal domain prior to the hardware DPU. Consequently, it is orthogonal to vendor waveform updates and requires zero root privileges or kernel modifications.
+3. **Extension to Color E-Ink**: While optimized for monochrome Carta 1200 panels, the mathematical formulation extends directly to color reflective displays (e.g., E Ink Kaleido 3, Gallery 3). In color systems, high-pass injection and phase shifting can be applied independently across CMYK or RGB color planes with rotated halftone screen angles ($15^\circ, 45^\circ, 75^\circ$) to avoid moiré.
 
 ---
 
 ## 8. Conclusion
 
-We have introduced **DeepInk**, an electrophoretic-aware video shader pipeline designed specifically for high-PPI reflective displays. By synthesizing non-linear tone mapping with an asymptotic white shoulder, 15Hz alternating phase-shifted clustered halftoning, golden-ratio temporal blue noise, and high-pass detail injection, DeepInk resolves the long-standing conflict between E-ink refresh latency, severe dark ghosting, and video dynamic range. 
+We have introduced **Dither Halftone** (抖动网点), a practical and lightweight video shader designed specifically for high-PPI reflective displays. By synthesizing non-linear tone mapping with an asymptotic white shoulder, 15Hz alternating phase-shifted clustered halftoning, golden-ratio temporal blue noise, and high-pass detail injection, this approach addresses the persistent conflict between E-ink refresh latency, severe dark ghosting, and video dynamic range. 
 
 The resulting video playback on the Hisense A7 delivers high contrast, solid deep ink, pure paper white highlights, continuous 98–128 perceptual grayscale gradations, and crisp edge typography, opening up new horizons for video consumption, gaming, and multimedia on eye-friendly reflective technology.
 

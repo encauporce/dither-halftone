@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    One-Click ADB Deployment Script for Hisense A7 E-Ink Video Shader (DeepInk).
+    One-Click ADB Deployment Script for Dither Halftone (抖动网点).
 .DESCRIPTION
     Pushes halftone.glsl and mpv.conf directly to your connected Hisense A7 E-ink phone.
 .EXAMPLE
@@ -15,7 +15,7 @@ param (
 )
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host " DeepInk: Hisense A7 E-Ink Video Shader - ADB Deployment Tool (PowerShell)" -ForegroundColor Cyan
+Write-Host " 抖动网点 (Dither Halftone) - ADB 部署脚本 (PowerShell)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 # 1. Check ADB Availability
