@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <b>[ <a href="#chinese">中文说明</a> | <a href="#english">English</a> | <a href="PAPER_ZH.md">技术总结 (中文)</a> | <a href="PAPER.md">Technical Notes (EN)</a> ]</b>
+  <b>[ <a href="#chinese">中文说明</a> | <a href="#english">English</a> | <a href="docs/PAPER_ZH.md">技术总结 (中文)</a> | <a href="docs/PAPER.md">Technical Notes (EN)</a> ]</b>
 </p>
 
 ---
@@ -69,6 +69,46 @@
 4. **留一点软边，让屏幕硬件去过渡**：
    - 不做一刀切的硬切黑白，给网点边缘留微弱平滑渐变（`DOT_SOFTNESS = 0.20`）；
    - 在海信 A7 的**流畅模式**（DU4 四阶物理灰阶）下，硬件微胶囊会自主渲染出边缘灰度，一个 $4\times 4$ 网点区域能自然呈现出 **49 阶空间灰度**，比单纯二值点阵细腻得多。
+
+---
+
+## 视觉效果展示 (Visual Gallery)
+
+<p align="center">
+  <img src="assets/shader_comparison.png" alt="效果对比" width="85%">
+  <br>
+  <i>原生视频直出 vs 抖动网点 着色器渲染对比 (包含暗部阶梯、球体渐变与文字清晰度)</i>
+</p>
+
+<p align="center">
+  <img src="assets/ds1_optB_live.png" alt="死亡搁浅实拍对比" width="85%">
+  <br>
+  <i>《死亡搁浅》复杂光影与夜戏在海信 A7 墨水屏上的实拍/仿真效果 (深黑沉底 + 15Hz 相位抗残影)</i>
+</p>
+
+---
+
+## 仓库目录结构 (Project Structure)
+
+```text
+dither-halftone/
+├── halftone.glsl        # 核心 mpv GLSL 着色器
+├── mpv.conf             # 推荐 mpv 配置参考
+├── deploy.ps1           # Windows PowerShell 一键无线 ADB 推送脚本
+├── deploy.sh            # Linux / macOS 一键无线 ADB 推送脚本
+├── benchmark.py         # 5项核心物理与画质指标自动化验证脚本
+├── README.md            # 项目主说明文档
+├── LICENSE              # MIT 开源协议
+├── assets/              # README 展示用的高清效果对比图
+│   ├── shader_comparison.png
+│   └── ds1_optB_live.png
+├── docs/                # 技术与理论文档
+│   ├── PAPER_ZH.md      # 中文技术报告
+│   └── PAPER.md         # 英文学术论文
+└── tests/               # 自动化验证基准帧
+    ├── raw_clip2_minecraft.png
+    └── raw_clip3_ds1.png
+```
 
 ---
 

@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Large Raw Video Files (Keep repo lightweight for GitHub)
-clips/*.mp4
+# Large Raw Video Files & Local Development Archives
+clips/
+*.mp4
+archive/
 
 # Operating System Files
 Thumbs.db

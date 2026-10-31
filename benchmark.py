@@ -147,15 +147,20 @@ def compute_sobel_magnitude(img):
 
 def run_benchmarks():
     repo_dir = os.path.dirname(os.path.abspath(__file__))
-    ds_path = os.path.join(repo_dir, "raw_clip3_ds1.png")
-    mc_path = os.path.join(repo_dir, "raw_clip2_minecraft.png")
+    ds_path = os.path.join(repo_dir, "tests", "raw_clip3_ds1.png")
+    if not os.path.exists(ds_path):
+        ds_path = os.path.join(repo_dir, "raw_clip3_ds1.png")
+
+    mc_path = os.path.join(repo_dir, "tests", "raw_clip2_minecraft.png")
+    if not os.path.exists(mc_path):
+        mc_path = os.path.join(repo_dir, "raw_clip2_minecraft.png")
 
     print("=" * 80)
     print(" 抖动网点 自动化量化基准测试套件")
     print("=" * 80)
 
     if not os.path.exists(ds_path) or not os.path.exists(mc_path):
-        print("Error: Test clip images not found.")
+        print(f"Error: Test clip images not found. Looked in {ds_path} and {mc_path}")
         return
 
     img_ds = Image.open(ds_path).convert('L')
