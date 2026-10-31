@@ -151,7 +151,7 @@ def run_benchmarks():
     mc_path = os.path.join(repo_dir, "raw_clip2_minecraft.png")
 
     print("=" * 80)
-    print(" Dither Halftone (抖动网点) Quantitative Benchmark Suite")
+    print(" 抖动网点 自动化量化基准测试套件")
     print("=" * 80)
 
     if not os.path.exists(ds_path) or not os.path.exists(mc_path):

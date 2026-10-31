@@ -1,5 +1,5 @@
-# 抖动网点 (Dither Halftone for E-Ink)
-### 专为墨水屏（海信 A7 等）视频播放调校的 mpv 抖动网点着色器
+# 抖动网点
+### 专为墨水屏（海信 A7 等）视频播放调校的 mpv 着色器
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
@@ -18,7 +18,7 @@
 <a name="chinese"></a>
 ## 中文说明
 
-**抖动网点 (Dither Halftone)** 是一个专为黑白墨水屏（如海信 A7、文石等设备）播放视频调校的 mpv GLSL 后处理着色器。
+**抖动网点** 是一个专为黑白墨水屏（如海信 A7、文石等设备）播放视频调校的 mpv GLSL 后处理着色器。
 
 在墨水屏上看视频，最容易遇到几个现实问题：
 1. **暗处残影重（死黑）**：暗部画面长时间不动，屏幕黑白粒子卡在原地，切到亮场景就会留下一大块擦不掉的黑影子。

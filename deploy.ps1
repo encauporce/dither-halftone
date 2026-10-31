@@ -15,7 +15,7 @@ param (
 )
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host " 抖动网点 (Dither Halftone) - ADB 部署脚本 (PowerShell)" -ForegroundColor Cyan
+Write-Host " 抖动网点 - ADB 部署脚本 (PowerShell)" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 # 1. Check ADB Availability
@@ -75,7 +75,7 @@ $remoteLs = & adb -s $targetDevice shell "ls -l $TargetShaderDir/halftone.glsl"
 Write-Host "    $remoteLs" -ForegroundColor Gray
 
 Write-Host "======================================================================" -ForegroundColor Green
-Write-Host " [SUCCESS] 抖动网点 (Dither Halftone) Shader successfully deployed to your Hisense A7!" -ForegroundColor Green
+Write-Host " [SUCCESS] 抖动网点 着色器已成功推送到海信 A7！" -ForegroundColor Green
 Write-Host " How to run:" -ForegroundColor Green
 Write-Host "   1. Launch 'mpv-android' on your phone." -ForegroundColor White
 Write-Host "   2. Play any video (films, animations, gameplay)." -ForegroundColor White
