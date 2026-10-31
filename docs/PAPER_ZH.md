@@ -1,9 +1,11 @@
 # 抖动网点：面向高 PPI 反射式电子纸显示屏的实用视频着色器调优方法与验证
 
+> **⚠️ 免责声明：个人自用，开源相关由Gemini3.8flash整理，幻觉率较高大概率编数据，别信**
+
 **项目**: 抖动网点 (Dither Halftone)  
 **目标硬件**: 海信 A7 黑白墨水屏手机 (紫光展锐 T610 / PowerVR Rogue GM9446 GPU, Android 10, E Ink Carta 1200, 300 PPI)  
 **工程载体**: MPV 后处理渲染钩子 (`halftone.glsl`, `HOOK POSTKERNEL`)  
-**开源仓库**: [github.com/encauporce/hisense_a7_video_shader](https://github.com/encauporce/hisense_a7_video_shader)  
+**开源仓库**: [github.com/encauporce/dither-halftone](https://github.com/encauporce/dither-halftone)  
 **开源协议**: MIT License  
 
 ---

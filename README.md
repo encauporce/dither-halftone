@@ -1,6 +1,8 @@
 # 抖动网点
 ### 专为墨水屏（海信 A7 等）视频播放调校的 mpv 着色器
 
+> **⚠️ 个人自用，开源相关由Gemini3.8flash整理，幻觉率较高大概率编数据，别信**
+
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Target_Device-Hisense_A7_B%26W-brightgreen.svg" alt="Device">
@@ -197,6 +199,8 @@ python benchmark.py
 
 <a name="english"></a>
 ## English Overview
+
+> **⚠️ Note: For personal use. Documentation and open-source materials were organized by Gemini 3.8 Flash; high hallucination rate, data is likely made up, do not trust.**
 
 **Dither Halftone** is a practical GPU postkernel GLSL shader tailored for video playback on reflective electrophoretic displays (E-ink, tested on Hisense A7 B&W, Unisoc T610, Carta 1200, 300 PPI) running `mpv-android`.
 
