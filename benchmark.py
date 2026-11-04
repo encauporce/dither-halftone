@@ -12,10 +12,10 @@ from PIL import Image
 
 # 4x4 Clustered Halftone Matrix (Classic print clustered dot)
 M16 = np.array([
-    [12.0,  4.0,  8.0, 14.0],
-    [10.0,  0.0,  1.0,  7.0],
-    [ 6.0,  2.0,  3.0, 11.0],
-    [15.0,  9.0,  5.0, 13.0]
+    [12.0,  8.0,  9.0, 13.0],
+    [ 7.0,  0.0,  1.0,  5.0],
+    [ 6.0,  2.0,  3.0,  4.0],
+    [11.0, 10.0, 14.0, 15.0]
 ], dtype=np.float32)
 TH_M16 = (M16 + 0.5) / 16.0
 
@@ -46,7 +46,7 @@ def run_shader(c, frame=0,
     """Exact emulation of halftone.glsl pipeline in NumPy with optional precomputed coordinates."""
     h, w = c.shape
     if precomputed_coords is not None and len(precomputed_coords) == 7:
-        yy, xx, ipos_y, ipos_x, h_val, pause_slot, phase_offset = precomputed_coords
+        yy, xx, ipos_y, ipos_x, h_val, time_slot, phase_offset = precomputed_coords
     else:
         if precomputed_coords is not None:
             yy, xx, ipos_y, ipos_x = precomputed_coords[:4]
@@ -59,7 +59,7 @@ def run_shader(c, frame=0,
         n = (bx.astype(np.int64) * 374761393 + by.astype(np.int64) * 668265263) & 0xffffffff
         n = ((n ^ (n >> 13)) * 1274126177) & 0xffffffff
         h_val = ((n ^ (n >> 16)) & 0x7fffffff).astype(np.int32)
-        pause_slot = (h_val >> 4) & 3
+        time_slot = (h_val >> 4) & 3
         phase_offset = h_val & 1
 
     # 1. 8-Neighbor Spatial Neighborhood & High-Pass
@@ -80,27 +80,18 @@ def run_shader(c, frame=0,
     in_bx = ipos_x & 3
     in_by = ipos_y & 3
     if anti_ghosting_dither == 1:
-        # Mode 1: Directional decoupled shift with staggered periods and pause slots
+        # Mode 1: Directional decoupled shift with true time-slot staggered cycles
         f_raw = frame % 256
-        f_rem = f_raw & 3
-        f_extra = np.where(f_rem <= pause_slot, f_rem, f_rem - 1)
-        f_adv = (f_raw // 4) * 3 + f_extra
-        phase = (f_adv + phase_offset) & 1
+        f_offset = (f_raw - time_slot + 256) & 255
+        phase = (f_offset // 4) & 1
         dir_mode = (h_val >> 2) & 3
-        shift_x = np.where((dir_mode == 0) & (phase == 1), 2,
-                  np.where((dir_mode == 1), 0,
-                  np.where((dir_mode == 2) & (phase == 1), 2,
-                  np.where((dir_mode == 3) & (phase == 0), 2, 0))))
-        shift_y = np.where((dir_mode == 0), 0,
-                  np.where((dir_mode == 1) & (phase == 1), 2,
-                  np.where((dir_mode == 2) & (phase == 1), 2, 0)))
+        shift_x = np.where(phase == 1, np.where(dir_mode != 1, 2, 0), 0)
+        shift_y = np.where(phase == 1, np.where((dir_mode == 1) | (dir_mode == 2), 2, 0), 0)
     elif anti_ghosting_dither == 2:
-        # Mode 2: Per-macro-dot staggered 16-phase cycle with individual pause slots
+        # Mode 2: Per-macro-dot staggered 16-phase cycle with individual time slots
         f_raw = frame % 256
-        f_rem = f_raw & 3
-        f_extra = np.where(f_rem <= pause_slot, f_rem, f_rem - 1)
-        f_adv = (f_raw // 4) * 3 + f_extra
-        idx_16 = (f_adv + (h_val & 15)) & 15
+        f_offset = (f_raw - time_slot + 256) & 255
+        idx_16 = (f_offset + (h_val & 15)) & 15
         shift_x = PHASE_16_X[idx_16]
         shift_y = PHASE_16_Y[idx_16]
     else:
