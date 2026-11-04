@@ -58,12 +58,13 @@ float get_luma_at(vec2 pos) {
 }
 
 // 4x4 Clustered Dot Halftone Threshold Matrix (16-level print gravure structure)
+// 4x4 Isotropic Diamond Clustered Halftone Matrix (45° 菱形各向同性对称，彻底消除水平扫描线横纹)
 float get_macro_threshold(ivec2 p) {
     const float m[16] = float[16](
-        12.0,  8.0,  9.0, 13.0,
-         7.0,  0.0,  1.0,  5.0,
-         6.0,  2.0,  3.0,  4.0,
-        11.0, 10.0, 14.0, 15.0
+        12.0,  4.0,  8.0, 14.0,
+        10.0,  0.0,  1.0,  7.0,
+         6.0,  2.0,  3.0, 11.0,
+        15.0,  9.0,  5.0, 13.0
     );
     return (m[p.y * 4 + p.x] + 0.5) / 16.0;
 }
@@ -126,9 +127,19 @@ vec4 hook() {
 
     ivec2 shift_vec = ivec2(0, 0);
     #if ANTI_GHOSTING_DITHER == 1
-        // 模式 1: 错开周期的对角微抖动 (保持网点质心100%恒定，各网点独立节奏交替)
+        // 模式 1: 周期错开 + 空间运动方向解耦 (不同网点独立轴向，绝非全部上下跳动)
+        // 彻底打破全屏统一上下颠簸的扫描线剧烈闪烁感，同时保留充沛的微胶囊交流激活能抗拖影
         int phase = (f_adv + phase_offset) & 1;
-        shift_vec = (phase == 1) ? ivec2(2, 2) : ivec2(0, 0);
+        int dir_mode = (h >> 2) & 3;
+        if (dir_mode == 0) {
+            shift_vec = (phase == 1) ? ivec2(2, 0) : ivec2(0, 0); // 仅水平左右运动 (绝不上下跳动)
+        } else if (dir_mode == 1) {
+            shift_vec = (phase == 1) ? ivec2(0, 2) : ivec2(0, 0); // 仅垂直上下运动
+        } else if (dir_mode == 2) {
+            shift_vec = (phase == 1) ? ivec2(2, 2) : ivec2(0, 0); // 对角线运动
+        } else {
+            shift_vec = (phase == 0) ? ivec2(2, 0) : ivec2(0, 0); // 水平异相运动 (与组0交替互补)
+        }
     #elif ANTI_GHOSTING_DITHER == 2
         // 模式 2: 错开周期的 16 相完全置换循环 (各网点在 16 相序列中处于不同步调)
         const ivec2 phase_16[16] = ivec2[16](

@@ -12,10 +12,10 @@ from PIL import Image
 
 # 4x4 Clustered Halftone Matrix (Classic print clustered dot)
 M16 = np.array([
-    [12.0,  8.0,  9.0, 13.0],
-    [ 7.0,  0.0,  1.0,  5.0],
-    [ 6.0,  2.0,  3.0,  4.0],
-    [11.0, 10.0, 14.0, 15.0]
+    [12.0,  4.0,  8.0, 14.0],
+    [10.0,  0.0,  1.0,  7.0],
+    [ 6.0,  2.0,  3.0, 11.0],
+    [15.0,  9.0,  5.0, 13.0]
 ], dtype=np.float32)
 TH_M16 = (M16 + 0.5) / 16.0
 
@@ -80,14 +80,20 @@ def run_shader(c, frame=0,
     in_bx = ipos_x & 3
     in_by = ipos_y & 3
     if anti_ghosting_dither == 1:
-        # Mode 1: Per-macro-dot staggered diagonal shift with individual pause slots
+        # Mode 1: Directional decoupled shift with staggered periods and pause slots
         f_raw = frame % 256
         f_rem = f_raw & 3
         f_extra = np.where(f_rem <= pause_slot, f_rem, f_rem - 1)
         f_adv = (f_raw // 4) * 3 + f_extra
         phase = (f_adv + phase_offset) & 1
-        shift_x = phase * 2
-        shift_y = phase * 2
+        dir_mode = (h_val >> 2) & 3
+        shift_x = np.where((dir_mode == 0) & (phase == 1), 2,
+                  np.where((dir_mode == 1), 0,
+                  np.where((dir_mode == 2) & (phase == 1), 2,
+                  np.where((dir_mode == 3) & (phase == 0), 2, 0))))
+        shift_y = np.where((dir_mode == 0), 0,
+                  np.where((dir_mode == 1) & (phase == 1), 2,
+                  np.where((dir_mode == 2) & (phase == 1), 2, 0)))
     elif anti_ghosting_dither == 2:
         # Mode 2: Per-macro-dot staggered 16-phase cycle with individual pause slots
         f_raw = frame % 256
