@@ -126,20 +126,8 @@ vec4 hook() {
 
     ivec2 shift_vec = ivec2(0, 0);
     #if ANTI_GHOSTING_DITHER == 1
-        // 模式 1: 周期错开 + 空间运动方向解耦 (不同网点独立轴向，绝非全部上下跳动)
-        // 50% 网点仅左右水平微移，25% 垂直微移，25% 对角微移，彻底杜绝全屏统一上下颠簸的扫描线剧烈闪烁
-        int dir_mode = (h >> 2) & 3;
-        if (phase == 1) {
-            if (dir_mode == 0) {
-                shift_vec = ivec2(2, 0); // 仅水平左右运动 (绝不上下跳动)
-            } else if (dir_mode == 1) {
-                shift_vec = ivec2(0, 2); // 仅垂直上下运动
-            } else if (dir_mode == 2) {
-                shift_vec = ivec2(2, 2); // 对角线运动
-            } else {
-                shift_vec = ivec2(2, 0); // 水平微移平衡组
-            }
-        }
+        // 模式 1: 各大网点独立时间槽周期错开 (对角微抖动 (0,0) <-> (2,2)，质心100%恒定)
+        shift_vec = (phase == 1) ? ivec2(2, 2) : ivec2(0, 0);
     #elif ANTI_GHOSTING_DITHER == 2
         // 模式 2: 错开周期的 16 相完全置换循环 (各网点在 16 相序列中处于不同步调)
         const ivec2 phase_16[16] = ivec2[16](

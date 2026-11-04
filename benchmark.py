@@ -80,13 +80,12 @@ def run_shader(c, frame=0,
     in_bx = ipos_x & 3
     in_by = ipos_y & 3
     if anti_ghosting_dither == 1:
-        # Mode 1: Directional decoupled shift with true time-slot staggered cycles
+        # Mode 1: True time-slot staggered cycles with diagonal shift (0,0) <-> (2,2)
         f_raw = frame % 256
         f_offset = (f_raw - time_slot + 256) & 255
         phase = (f_offset // 4) & 1
-        dir_mode = (h_val >> 2) & 3
-        shift_x = np.where(phase == 1, np.where(dir_mode != 1, 2, 0), 0)
-        shift_y = np.where(phase == 1, np.where((dir_mode == 1) | (dir_mode == 2), 2, 0), 0)
+        shift_x = np.where(phase == 1, 2, 0)
+        shift_y = np.where(phase == 1, 2, 0)
     elif anti_ghosting_dither == 2:
         # Mode 2: Per-macro-dot staggered 16-phase cycle with individual time slots
         f_raw = frame % 256
