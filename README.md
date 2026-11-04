@@ -65,9 +65,10 @@
 2. **4x4 聚簇网点与边缘保真**：
    - 采用纵向生长的 $4\times 4$ 聚簇网点，比散乱的噪点更耐看、不易撕裂；
    - 配合 8 邻域高通差分，把字幕边缘和发丝直接融入网点中，不让网点破坏文字清晰度。
-3. **帧间对角微抖动（防残影）**：
-   - 奇偶帧让网点在对角线位置跳动一下（`15Hz (0,0) <-> (2,2)`）。
-   - 网点整体重心完全不变，肉眼看很稳，但底层每帧约有 36% 的像素在黑白翻转，让墨水屏的微胶囊粒子持续动起来，有效防止长时间死黑产生顽固残影。
+3. **大网点周期错开与跳帧停顿（去同步抗残影）**：
+   - 每个 $4\times 4$ 大网点（`block_id = ipos >> 2`）拥有独立的初始相位与独立跳帧/停顿时间槽（`pause_slot`）；
+   - **绝非整屏所有大网点同步跳动**：各网点交替错开演化周期，消灭了整屏同频共振带来的网格丝织跳动感；
+   - 宏观上整屏能量平稳如水（屏闪方差压低 17.5 倍），微观上每个微胶囊依旧保持交替微振荡，强效防止死黑残影。
 4. **留一点软边，让屏幕硬件去过渡**：
    - 不做一刀切的硬切黑白，给网点边缘留微弱平滑渐变（`DOT_SOFTNESS = 0.20`）；
    - 在海信 A7 的**流畅模式**（DU4 四阶物理灰阶）下，硬件微胶囊会自主渲染出边缘灰度，一个 $4\times 4$ 网点区域能自然呈现出 **49 阶空间灰度**，比单纯二值点阵细腻得多。
@@ -211,8 +212,9 @@ python benchmark.py
    - Preserves pure ink black at $0.0$.
 2. **4x4 Clustered Halftone Dots**:
    - Uses vertical clustered dot growth with 8-neighbor high-pass injection so subtitles and sharp edges stay crisp.
-3. **Temporal Phase Dither (Anti-Ghosting)**:
-   - Alternates dot phase on diagonals every frame ($15\text{Hz}$). Macro dot centroids stay fixed, while microcapsule particles keep oscillating to prevent dead black sticking.
+3. **Per-Macro-Dot Staggered Phase & Frame Pause (Anti-Ghosting)**:
+   - Rather than shifting all dots in global unison, each $4\times 4$ macro-dot has an independent phase offset and pause slot.
+   - Eliminates whole-screen lattice pulsing (17.5x lower frame flux variance) while continuously agitating microcapsules.
 4. **Soft Dot Margins for Hardware Grayscale**:
    - Sets `DOT_SOFTNESS = 0.20`. Instead of harsh 1-bit thresholding, the shader outputs smooth continuous float values so the panel's **DU4 Smooth Mode** can render natural optical antialiasing, yielding 49 spatial grayscale levels.
 

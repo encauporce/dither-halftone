@@ -14,8 +14,8 @@
  * 1. 影调与白肩调整: 修正视频 Rec.709 动态范围与墨水屏的差异，暗部提亮保细节，
  *    高光二次白肩推到纯白消除天空噪点，同时保住纯黑深墨基底。
  * 2. 4x4 聚簇印刷网点: 采用纵向稳定的 4x4 网点排列，配合边缘高通锐化，文字与轮廓不发糊。
- * 3. 帧间抗残影微抖动: 奇偶帧在对角线跳动（或 16 相循环微调），让微胶囊粒子保持运动，
- *    避免暗部长时间静止卡死留下残影。
+ * 3. 大网点错开周期与抗残影微抖动: 每个大网点(4x4)拥有独立的初始相位与跳帧/停顿时间槽，
+ *    使各网点演化周期相互错开，彻底消除整屏同步共振的网格跳动感，同时让微胶囊粒子保持运动。
  * 4. 渐变软边缘: 输出保留微弱平滑渐变，利用屏幕流畅模式 (DU4 四阶灰度)
  *    自然平滑网点边缘，呈现更细腻的空间色阶。
  * ============================================================================
@@ -106,23 +106,39 @@ vec4 hook() {
     float norm_curve = clamp(pow(c, DARK_LIFT_GAMMA) + toe + shoulder, 0.0, 1.0);
     float luma_lifted = DARK_LIFT_MIN + (1.0 - DARK_LIFT_MIN) * norm_curve;
 
-    // 4. Clustered Halftone with Anti-Ghosting Phase Modulation
+    // 4. Clustered Halftone with Per-Macro-Dot Staggered Anti-Ghosting
+    // 每个 4x4 块为一个独立的大网点单元 (Macro-Dot)
+    ivec2 block_id = ipos >> 2;
     ivec2 in_block = ipos & 3;
+
+    // 针对大网点坐标的轻量整数哈希 (Wang Hash)
+    int n = block_id.x * 374761393 + block_id.y * 668265263;
+    n = (n ^ (n >> 13)) * 1274126177;
+    int h = (n ^ (n >> 16)) & 0x7fffffff;
+
+    // 大网点独立跳帧/停顿时间槽 [0 ~ 3] 与 初始相位错开 (使各网点周期错开，杜绝全屏网格同步共振)
+    int pause_slot = (h >> 4) & 3;
+    int phase_offset = h & 1;
+    int f_raw = int(mod(float(frame), 256.0));
+    int f_rem = f_raw & 3;
+    int f_extra = (f_rem <= pause_slot) ? f_rem : (f_rem - 1);
+    int f_adv = (f_raw / 4) * 3 + f_extra;
+
     ivec2 shift_vec = ivec2(0, 0);
     #if ANTI_GHOSTING_DITHER == 1
-        // 15Hz alternating diagonal shift: flips ~36% pixels with 100% centroid invariance
-        if (int(mod(float(frame), 2.0)) == 1) {
-            shift_vec = ivec2(2, 2);
-        }
+        // 模式 1: 错开周期的对角微抖动 (保持网点质心100%恒定，各网点独立节奏交替)
+        int phase = (f_adv + phase_offset) & 1;
+        shift_vec = (phase == 1) ? ivec2(2, 2) : ivec2(0, 0);
     #elif ANTI_GHOSTING_DITHER == 2
-        // 16-phase complete permutation cycle: eliminates 99.7% of multi-frame static zero freeze
+        // 模式 2: 错开周期的 16 相完全置换循环 (各网点在 16 相序列中处于不同步调)
         const ivec2 phase_16[16] = ivec2[16](
             ivec2(0, 0), ivec2(2, 2), ivec2(0, 1), ivec2(2, 3),
             ivec2(0, 2), ivec2(2, 0), ivec2(0, 3), ivec2(2, 1),
             ivec2(1, 1), ivec2(3, 3), ivec2(1, 2), ivec2(3, 0),
             ivec2(1, 3), ivec2(3, 1), ivec2(1, 0), ivec2(3, 2)
         );
-        shift_vec = phase_16[int(mod(float(frame), 16.0))];
+        int phase_16_idx = (f_adv + (h & 15)) & 15;
+        shift_vec = phase_16[phase_16_idx];
     #endif
 
     ivec2 p_macro = (in_block + shift_vec) & 3;

@@ -26,6 +26,8 @@ PHASE_16 = [
     (1, 1), (3, 3), (1, 2), (3, 0),
     (1, 3), (3, 1), (1, 0), (3, 2)
 ]
+PHASE_16_X = np.array([p[0] for p in PHASE_16], dtype=np.int32)
+PHASE_16_Y = np.array([p[1] for p in PHASE_16], dtype=np.int32)
 
 def run_shader(c, frame=0,
                dark_lift_min=0.050,
@@ -43,12 +45,22 @@ def run_shader(c, frame=0,
                precomputed_coords=None):
     """Exact emulation of halftone.glsl pipeline in NumPy with optional precomputed coordinates."""
     h, w = c.shape
-    if precomputed_coords is not None:
-        yy, xx, ipos_y, ipos_x = precomputed_coords
+    if precomputed_coords is not None and len(precomputed_coords) == 7:
+        yy, xx, ipos_y, ipos_x, h_val, pause_slot, phase_offset = precomputed_coords
     else:
-        yy, xx = np.indices((h, w), dtype=np.float32)
-        ipos_x = xx.astype(np.int32)
-        ipos_y = yy.astype(np.int32)
+        if precomputed_coords is not None:
+            yy, xx, ipos_y, ipos_x = precomputed_coords[:4]
+        else:
+            yy, xx = np.indices((h, w), dtype=np.float32)
+            ipos_x = xx.astype(np.int32)
+            ipos_y = yy.astype(np.int32)
+        bx = ipos_x >> 2
+        by = ipos_y >> 2
+        n = (bx.astype(np.int64) * 374761393 + by.astype(np.int64) * 668265263) & 0xffffffff
+        n = ((n ^ (n >> 13)) * 1274126177) & 0xffffffff
+        h_val = ((n ^ (n >> 16)) & 0x7fffffff).astype(np.int32)
+        pause_slot = (h_val >> 4) & 3
+        phase_offset = h_val & 1
 
     # 1. 8-Neighbor Spatial Neighborhood & High-Pass
     cp = np.pad(c, 1, mode='edge')
@@ -64,19 +76,30 @@ def run_shader(c, frame=0,
     norm_curve = np.clip((c ** dark_lift_gamma) + toe + shoulder, 0.0, 1.0)
     luma_lifted = dark_lift_min + (1.0 - dark_lift_min) * norm_curve
 
-    # 3. 4x4 Clustered Halftone with Anti-Ghosting Phase Modulation
+    # 3. 4x4 Clustered Halftone with Per-Macro-Dot Staggered Anti-Ghosting
     in_bx = ipos_x & 3
     in_by = ipos_y & 3
-    shift_x = 0
-    shift_y = 0
     if anti_ghosting_dither == 1:
-        # 15Hz alternating diagonal shift (0,0) <-> (2,2)
-        if frame % 2 == 1:
-            shift_x = 2
-            shift_y = 2
+        # Mode 1: Per-macro-dot staggered diagonal shift with individual pause slots
+        f_raw = frame % 256
+        f_rem = f_raw & 3
+        f_extra = np.where(f_rem <= pause_slot, f_rem, f_rem - 1)
+        f_adv = (f_raw // 4) * 3 + f_extra
+        phase = (f_adv + phase_offset) & 1
+        shift_x = phase * 2
+        shift_y = phase * 2
     elif anti_ghosting_dither == 2:
-        # 16-phase complete permutation cycle
-        shift_x, shift_y = PHASE_16[frame % 16]
+        # Mode 2: Per-macro-dot staggered 16-phase cycle with individual pause slots
+        f_raw = frame % 256
+        f_rem = f_raw & 3
+        f_extra = np.where(f_rem <= pause_slot, f_rem, f_rem - 1)
+        f_adv = (f_raw // 4) * 3 + f_extra
+        idx_16 = (f_adv + (h_val & 15)) & 15
+        shift_x = PHASE_16_X[idx_16]
+        shift_y = PHASE_16_Y[idx_16]
+    else:
+        shift_x = 0
+        shift_y = 0
 
     p_macro_x = (in_bx + shift_x) & 3
     p_macro_y = (in_by + shift_y) & 3
@@ -121,7 +144,7 @@ def simulate_naive_pipeline(c, precomputed_coords=None):
     """Original un-optimized video pipeline (naive hardware quantization)."""
     h, w = c.shape
     if precomputed_coords is not None:
-        yy, xx, _, _ = precomputed_coords
+        yy, xx = precomputed_coords[:2]
     else:
         yy, xx = np.indices((h, w), dtype=np.float32)
     magic = np.array([0.06711056, 0.00583715, 52.9829189])
@@ -167,13 +190,27 @@ def run_benchmarks():
     c_ds = np.array(img_ds, dtype=np.float32) / 255.0
     h_ds, w_ds = c_ds.shape
     yy_ds, xx_ds = np.indices((h_ds, w_ds), dtype=np.float32)
-    coords_ds = (yy_ds, xx_ds, yy_ds.astype(np.int32), xx_ds.astype(np.int32))
+    ipos_x_ds = xx_ds.astype(np.int32)
+    ipos_y_ds = yy_ds.astype(np.int32)
+    bx_ds = ipos_x_ds >> 2
+    by_ds = ipos_y_ds >> 2
+    n_ds = (bx_ds.astype(np.int64) * 374761393 + by_ds.astype(np.int64) * 668265263) & 0xffffffff
+    n_ds = ((n_ds ^ (n_ds >> 13)) * 1274126177) & 0xffffffff
+    h_val_ds = ((n_ds ^ (n_ds >> 16)) & 0x7fffffff).astype(np.int32)
+    coords_ds = (yy_ds, xx_ds, ipos_y_ds, ipos_x_ds, h_val_ds, (h_val_ds >> 4) & 3, h_val_ds & 1)
 
     img_mc = Image.open(mc_path).convert('L')
     c_mc = np.array(img_mc, dtype=np.float32) / 255.0
     h_mc, w_mc = c_mc.shape
     yy_mc, xx_mc = np.indices((h_mc, w_mc), dtype=np.float32)
-    coords_mc = (yy_mc, xx_mc, yy_mc.astype(np.int32), xx_mc.astype(np.int32))
+    ipos_x_mc = xx_mc.astype(np.int32)
+    ipos_y_mc = yy_mc.astype(np.int32)
+    bx_mc = ipos_x_mc >> 2
+    by_mc = ipos_y_mc >> 2
+    n_mc = (bx_mc.astype(np.int64) * 374761393 + by_mc.astype(np.int64) * 668265263) & 0xffffffff
+    n_mc = ((n_mc ^ (n_mc >> 13)) * 1274126177) & 0xffffffff
+    h_val_mc = ((n_mc ^ (n_mc >> 16)) & 0x7fffffff).astype(np.int32)
+    coords_mc = (yy_mc, xx_mc, ipos_y_mc, ipos_x_mc, h_val_mc, (h_val_mc >> 4) & 3, h_val_mc & 1)
 
     # 1. Static Pixel Freeze & Ghosting Susceptibility
     print("\n[Benchmark 1] Static Pixel Settling Analysis (16 Consecutive Frames)")
