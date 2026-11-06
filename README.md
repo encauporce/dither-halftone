@@ -9,10 +9,11 @@
   <img src="https://img.shields.io/badge/Screen-E_Ink_Carta_1200_300PPI-orange.svg" alt="Display">
   <img src="https://img.shields.io/badge/Player-mpv--android-red.svg" alt="MPV">
   <img src="https://img.shields.io/badge/Shader-GLSL_Postkernel-purple.svg" alt="Shader">
+  <img src="https://img.shields.io/badge/Release-v1.0.0-brightgreen" alt="Release">
 </p>
 
 <p align="center">
-  <b>[ <a href="#chinese">中文说明</a> | <a href="#english">English</a> | <a href="docs/PAPER_ZH.md">技术总结 (中文)</a> | <a href="docs/PAPER.md">Technical Notes (EN)</a> ]</b>
+  <b>[ <a href="#chinese">中文说明</a> | <a href="#english">English</a> | <a href="docs/PAPER_ZH.md">技术总结 (中文)</a> | <a href="docs/PAPER.md">Technical Notes (EN)</a> | <a href="https://github.com/encauporce/dither-halftone/releases/tag/v1.0.0">Release v1.0.0</a> ]</b>
 </p>
 
 ---
@@ -68,7 +69,7 @@
 3. **大网点周期错开与跳帧停顿（去同步抗残影）**：
    - 每个 $4\times 4$ 大网点（`block_id = ipos >> 2`）拥有独立的初始相位与独立跳帧/停顿时间槽（`pause_slot`）；
    - **绝非整屏所有大网点同步跳动**：各网点交替错开演化周期，消灭了整屏同频共振带来的网格丝织跳动感；
-   - 宏观上整屏能量平稳如水（屏闪方差压低 17.5 倍），微观上每个微胶囊依旧保持交替微振荡，强效防止死黑残影。
+   - 宏观上整屏能量平稳如水，微观上每个微胶囊依旧保持交替微振荡，强效防止死黑残影（滞留下沉与震荡率的具体数字见下方「自动化测试脚本」实测输出）。
 4. **留一点软边，让屏幕硬件去过渡**：
    - 不做一刀切的硬切黑白，给网点边缘留微弱平滑渐变（`DOT_SOFTNESS = 0.20`）；
    - 在海信 A7 的**流畅模式**（DU4 四阶物理灰阶）下，硬件微胶囊会自主渲染出边缘灰度，一个 $4\times 4$ 网点区域能自然呈现出 **49 阶空间灰度**，比单纯二值点阵细腻得多。
@@ -107,7 +108,8 @@ dither-halftone/
 │   └── ds1_optB_live.png
 ├── docs/                # 技术与理论文档
 │   ├── PAPER_ZH.md      # 中文技术报告
-│   └── PAPER.md         # 英文学术论文
+│   ├── PAPER.md         # 英文学术论文
+│   └── superpowers/specs/2026-10-30-hisense-a7-eink-shader-design.md   # 当初的设计规格
 └── tests/               # 自动化验证基准帧
     ├── raw_clip2_minecraft.png
     └── raw_clip3_ds1.png
@@ -117,9 +119,20 @@ dither-halftone/
 
 ## 快速安装与使用
 
+### 0. 前置条件
+
+| 需要 | 说明 |
+| :--- | :--- |
+| **Android platform-tools（`adb`）** | `deploy.ps1` / `deploy.sh` 会先检查 `adb` 是否在 PATH，并要求 `adb devices` 里有一台状态为 `device` 的机器。 |
+| **支持 `glsl-shaders` 的 mpv 构建** | 即 mpv-android 一类带 libmpv 后处理接口的播放器；只有硬解没有 shader 接口的播放器无法套用。 |
+| **不需要 root** | 着色器和配置都写到 `/sdcard/mpv/` 下，属于普通可写目录，无需解锁或授权。 |
+| **屏幕刷新模式** | 海信 A7 上请切到「流畅模式」（DU4 四阶灰度），`DOT_SOFTNESS = 0.20` 的 49 阶空间灰度效果依赖硬件过渡；纯黑白极速模式请改成 `0.06`。 |
+
+只要单个文件就能用：下载 [`halftone.glsl`](https://github.com/encauporce/dither-halftone/raw/master/halftone.glsl)，或取发布版归档 [`v1.0.0`](https://github.com/encauporce/dither-halftone/archive/refs/tags/v1.0.0.tar.gz)。
+
 ### 1. 自动推送到手机 (推荐)
 
-把手机打开 **USB 调试** 连上电脑：
+把手机打开 **USB 调试** 连上电脑（无线调试先 `adb pair` / `adb connect` 亦可）：
 
 - **Windows (PowerShell)**:
   ```powershell
@@ -143,7 +156,7 @@ dither-halftone/
    ```
    /sdcard/mpv/shaders/halftone.glsl
    ```
-3. 在 `/sdcard/mpv/mpv.conf` 中填入：
+3. 在 `/sdcard/mpv/mpv.conf` 中填入（仓库自带的 [`mpv.conf`](mpv.conf) 就是前 6 行，直接推送即可）：
    ```ini
    vo=gpu
    gpu-context=android
@@ -151,7 +164,7 @@ dither-halftone/
    glsl-shaders="/sdcard/mpv/shaders/halftone.glsl"
    loop-file=inf
    keep-open=yes
-   dither-depth=no
+   dither-depth=no      # 可选：仓库 mpv.conf 未包含，关掉播放器自带抖动，避免与网点叠加
    ```
 4. 打开手机上的 `mpv-android` 播放任意视频即可。
 
@@ -167,6 +180,7 @@ dither-halftone/
 #define DARK_LIFT_GAMMA     0.52      // 展开伽马: 调小(如0.48)暗部更透亮，调大(如0.58)对比更强
 #define WHITE_SHOULDER      0.14      // 高光白肩提拉: 把天空拉到纯白，彻底消灭高光黑杂点
 #define SHADOW_TOE_BOOST    0.12      // 极暗部微提: 唤醒暗部细节
+#define TEMPORAL_DARK_BOOST 1.60      // 暗部时域震荡增强倍率: 加速死黑区的去极化
 
 // 2. 【防残影抖动模式】
 #define ANTI_GHOSTING_DITHER 1        // 1: 15Hz 对角微抖动 (推荐默认，网点位置最稳)
@@ -178,23 +192,59 @@ dither-halftone/
 
 // 4. 【边缘高通注入】
 #define HIGH_PASS_INJECT    1.60      // 边缘清晰度: 让文字和边缘更锐利
+#define HP_DARK_BOOST       1.40      // 暗部高频注入补偿: 让边缘在深黑簇里也咬得住
+#define EDGE_BOOST          1.15      // 结构边缘对比度适度增强
+
+// 5. 【噪点填隙与时域推进】
+#define A_SPATIAL           0.40      // 空域蓝噪填隙振幅: 针对 DU4 微胶囊标定
+#define TEMPORAL_BLUE_NOISE 1         // 1: 启用黄金比例(0.618)时域相位推进
+#define WEBER_EDGE_MODE     0         // 0: 标准 Sobel 阈值; 1: 叠加韦伯-费希纳感知模型
 ```
+
+<details>
+<summary>调参速查：改哪个数字会看见什么</summary>
+
+| 想解决的问题 | 先动这个 | 方向 |
+| :--- | :--- | :--- |
+| 天空/高光布满细碎黑点 | `WHITE_SHOULDER` | 调大（0.14 → 0.18）先把 0.8 以上推成纯纸白 |
+| 暗部糊成一整块死黑 | `DARK_LIFT_GAMMA` / `SHADOW_TOE_BOOST` | 伽马调小、趾部调大 |
+| 整屏网格同频抽动 | `ANTI_GHOSTING_DITHER` | 保持 1；极暗场景再试 2 |
+| 字幕和细线发糊 | `HIGH_PASS_INJECT` / `EDGE_BOOST` | 一起往上加，过大会出现白边描边 |
+| 切 DU4 后网点发硬 | `DOT_SOFTNESS` | 0.20（流畅）↔ 0.06（极速二值） |
+| 灰阶过渡仍有断层 | `A_SPATIAL` | 微调填隙振幅，代价是颗粒感上升 |
+
+</details>
+
+---
+
+## 已知限制
+
+- 只在**黑白墨水屏**（海信 A7，Carta 1200 / 300 PPI / 1200×824）上调校过；彩色墨水屏与多灰阶机型未验证，`4x4` 网点尺度和 `DOT_SOFTNESS` 都与该面板特性绑定。
+- 需要播放器暴露 `glsl-shaders` 后处理接口；纯硬件解码且无 shader 通道的播放器接不上。
+- `49 阶空间灰度`、`17.5 倍屏闪方差下降`等结论是**仿真与脚本计算值**（见 `benchmark.py`），不是屏摄实测；不同刷新模式与老化程度下观感差别明显。
+- 着色器会提高每帧后处理开销，高码率 4K 片源在 T610 一档的 SoC 上可能掉帧；必要时降低播放分辨率。
+- 文档由 AI 协助整理，效果描述以真机观感为准（顶部免责声明同义）。
 
 ---
 
 ## 自动化测试脚本
 
-仓库附带了测试脚本，可直接运行验证：
+`benchmark.py` 是纯 NumPy 的着色器流水线仿真，**不需要连手机**，只用 `tests/` 里两张基准帧：
 
 ```bash
+pip install numpy pillow
 python benchmark.py
 ```
 
-实测输出验证：
-- 墨底与高光极限：深黑沉底 `0.0000`，高光纸白 `1.0000`（无溢出高光噪点）
-- 防残影翻转：每帧约 `36.46%` 像素微翻转，静态死黑滞留率下降 `38.59%`
-- 空间色阶：DU4 模式下单宏块等效展现 `49` 阶物理反射率
-- 边缘保真度：结构边缘 Sobel 梯度保留率达到 `101.48%`（文字不发糊）
+在当前 `master`（`d781223`）上重跑得到的实际输出（2026-11-06）：
+
+- 影调锚定：输出最小 `0.0000`（纯墨底），最大 `1.0000`（纯纸白），输入高光 0.95 被推到 `1.0000`
+- 静态滞留：关闭抖动时永久滞留像素 `67.15%` → Mode 1 `40.01%`（下降 **40.42%**）→ Mode 2 `0.00%`
+- 时域震荡：《死亡搁浅》夜戏帧间平均差 `0.0875`，`|Δ|>0.10` 震荡像素 `14.44%`，硬翻转 `9.11%`
+- 有效灰阶：朴素 DU4 流水线仅 4 个离散级，本着色器输出 256 级连续浮点，4x4 宏块等效 **49 阶**物理灰阶
+- 边缘保真：`101.73%`（相对标准网点），Minecraft 高对比结构边缘未被网点打散
+
+> 之前正文里的 `36.46%` / `38.59%` / `101.48%` 是 AI 整理文档时写的，与脚本实际输出不符，已按上面的重跑结果为准。
 
 ---
 
@@ -214,9 +264,19 @@ python benchmark.py
    - Uses vertical clustered dot growth with 8-neighbor high-pass injection so subtitles and sharp edges stay crisp.
 3. **Per-Macro-Dot Staggered Phase & Frame Pause (Anti-Ghosting)**:
    - Rather than shifting all dots in global unison, each $4\times 4$ macro-dot has an independent phase offset and pause slot.
-   - Eliminates whole-screen lattice pulsing (17.5x lower frame flux variance) while continuously agitating microcapsules.
+   - Eliminates whole-screen lattice pulsing while continuously agitating microcapsules (see the measured settling/agitation figures in the benchmark section above).
 4. **Soft Dot Margins for Hardware Grayscale**:
    - Sets `DOT_SOFTNESS = 0.20`. Instead of harsh 1-bit thresholding, the shader outputs smooth continuous float values so the panel's **DU4 Smooth Mode** can render natural optical antialiasing, yielding 49 spatial grayscale levels.
+
+---
+
+## Requirements & Known Limitations
+
+- **Host tooling**: Android `platform-tools` (`adb`) for the deploy scripts; `pip install numpy pillow` for `benchmark.py`.
+- **Player**: any libmpv build exposing `glsl-shaders` (mpv-android on the A7 is the tested path). No root required — everything lives under `/sdcard/mpv/`.
+- **Panel mode**: the 49-level effect assumes the device's **DU4 smooth mode**; in 1-bit fast mode set `DOT_SOFTNESS = 0.06`.
+- **Tuned for one panel**: calibrated on a Hisense A7 (mono Carta 1200, 300 PPI). Colour E-ink and other grayscale modes are untested; dot scale and softness are tied to that panel's behaviour.
+- **Numbers are simulation output**, produced by `benchmark.py` emulating the shader in NumPy — not photographs of the screen.
 
 ---
 
